@@ -1,5 +1,7 @@
 import json
 
+from openai import OpenAI
+
 from swarm import Swarm
 
 
@@ -58,9 +60,35 @@ def pretty_print_messages(messages) -> None:
 
 
 def run_demo_loop(
-    starting_agent, context_variables=None, stream=False, debug=False
+    starting_agent, context_variables=None, stream=False, debug=False,
+    client_config: dict | None = None,
 ) -> None:
-    client = Swarm()
+    """
+    Run a simple REPL loop for interacting with a Swarm agent.
+    Parameters
+    ----------
+    starting_agent
+    context_variables
+    stream
+    debug
+    client_config: dict, optional
+        Configuration for the OpenAI client.
+        Example:
+        >>> client_config = {
+        ...     "base_url": "https://api.openai.com/v1",
+        ...     "api_key": "your-api-key",
+        ...     "organization_id": "your-org-id",
+        ...     "http_client": httpx.Client(proxies="list of proxies"),
+        ... }
+
+    Returns
+    -------
+
+    """
+    if client_config is None:
+        client_config = {}
+    client = OpenAI(**client_config)
+    swarm = Swarm(client=client)
     print("Starting Swarm CLI 🐝")
 
     messages = []
@@ -70,7 +98,7 @@ def run_demo_loop(
         user_input = input("\033[90mUser\033[0m: ")
         messages.append({"role": "user", "content": user_input})
 
-        response = client.run(
+        response = swarm.run(
             agent=agent,
             messages=messages,
             context_variables=context_variables or {},
