@@ -13,45 +13,38 @@ finalizer_agent = Agent(
     name="Finalizer Agent",
     instructions=(
         "Collect all the results from the agents, "
-        "integrate them, and produce the final solution"
+        "integrate them, and produce the final solution."
+        "It should be only short answer."
     ),
     functions=[],
+    temperature=0.0,
 )
+
+
+def finalize():
+    return finalizer_agent
 
 
 solver_agent = Agent(
     name="Math Solver Agent",
-    instructions="Generate solutions by following the provided plan step-by-step",
-    functions=[],
-)
-
-
-def launch_solver_agent(solution_plan: str):
-    """Launch a new agent to solve a math problem."""
-    global solver_agent
-    solver_agent = copy.deepcopy(solver_agent)
-    solver_agent.instructions += f"\n\n{solution_plan}"
-    return solver_agent
-
-
-decomposer_agent = Agent(
-    name="Math Decomposer Agent",
     instructions=(
-        "Analyze the MATH-500 task, decompose it into 5 subtasks, "
-        "and assign each subtask to a different agent. For each subtask "
-        "launch a new agent through the 'launch_solver_agent' function."
+        "Prepare new step-by-step solutions for the math problem and solve it. "
+        "If fewer than 5 solutions are proposed, you must call 'launch_solver_agent'. "
+        "In all cases, after generating solutions, ensure to call 'finalize' to complete the process."
     ),
-    functions=[launch_solver_agent]
+    functions=[finalize],
+    temperature=0.0
 )
 
-def transfer_to_decomposer():
-    return decomposer_agent
+
+def launch_solver_agent():
+    return solver_agent
 
 
 def set_up_agents(model_name: str, tool_choice: str = None):
     solver_agent.model = model_name
-    decomposer_agent.model = model_name
+    finalizer_agent.model = model_name
     if tool_choice:
         solver_agent.tool_choice = tool_choice
-        decomposer_agent.tool_choice = tool_choice
-    solver_agent.functions.append(transfer_to_decomposer)
+        finalizer_agent.tool_choice = tool_choice
+    solver_agent.functions.append(launch_solver_agent)
