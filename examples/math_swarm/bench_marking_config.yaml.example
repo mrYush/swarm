@@ -1,0 +1,9 @@
+dataset_name: "HuggingFaceH4/MATH-500"
+base_url: <http://openai compatabile url:port/v1>
+model_name: Qwen/Qwen2.5-7B-Instruct
+api_key: "sk-..."
+tool_choice: "auto"
+sample_cnt: 100
+max_turns: 5
+max_symbol_cnt: 32000
+output_folder: <output_folder>
