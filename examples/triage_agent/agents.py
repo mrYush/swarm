@@ -41,6 +41,15 @@ def transfer_to_refunds():
     return refunds_agent
 
 
-triage_agent.functions = [transfer_to_sales, transfer_to_refunds]
-sales_agent.functions.append(transfer_back_to_triage)
-refunds_agent.functions.append(transfer_back_to_triage)
+def set_up_agents(model_name: str, tool_choice: str = None):
+    triage_agent.functions = [transfer_to_sales, transfer_to_refunds]
+    sales_agent.functions.append(transfer_back_to_triage)
+    refunds_agent.functions.append(transfer_back_to_triage)
+    if tool_choice:
+        triage_agent.tool_choice = tool_choice
+        sales_agent.tool_choice = tool_choice
+        refunds_agent.tool_choice = tool_choice
+
+    triage_agent.model = model_name
+    sales_agent.model = model_name
+    refunds_agent.model = model_name

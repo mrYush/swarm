@@ -1,3 +1,16 @@
+[tool.poetry]
+name = "swarm"
+version = "0.1.0"
+description = ""
+authors = ["mrYush <yuri.simonov@atom.team>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+openai = "^1.57.4"
+pydantic = "^2.10.3"
+pyyaml = "^6.0.2"
+
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

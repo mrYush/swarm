@@ -1,5 +1,9 @@
 import inspect
+import json
+import re
 from datetime import datetime
+
+from .types import Function, ChatCompletionMessageToolCall
 
 
 def debug_print(debug: bool, *args: str) -> None:
@@ -85,3 +89,40 @@ def function_to_json(func) -> dict:
             },
         },
     }
+
+
+def parse_tool_calls_from_content(
+    content: str,
+    debug: bool = False
+) -> list[ChatCompletionMessageToolCall]:
+    """
+    Извлекает и парсит вызовы инструментов из строки content, используя теги <tool_call>.
+
+    :param content: Строка с текстом, содержащим теги <tool_call>.
+    :param debug: Флаг для включения режима отладки.
+    :return: Список объектов ChatCompletionMessageToolCall.
+    """
+    tool_call_pattern = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
+    tool_calls = []
+
+    if content:
+        matches = tool_call_pattern.findall(content)
+        for match in matches:
+            try:
+                tool_call_data = json.loads(match)
+                arg_str = json.dumps(tool_call_data.get("arguments", {}))
+                tool_calls.append(
+                    ChatCompletionMessageToolCall(
+                        id=tool_call_data.get("id", "unknown"),
+                        function=Function(
+                            name=tool_call_data["name"],
+                            arguments=arg_str
+                        ),
+                        type="function"
+                    )
+                )
+            except json.JSONDecodeError as e:
+                if debug:
+                    print(f"Failed to parse tool call JSON: {e}")
+
+    return tool_calls

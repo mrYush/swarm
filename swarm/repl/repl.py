@@ -62,6 +62,7 @@ def pretty_print_messages(messages) -> None:
 def run_demo_loop(
     starting_agent, context_variables=None, stream=False, debug=False,
     client_config: dict | None = None,
+    possible_msg_keys: list[str] | None = None
 ) -> None:
     """
     Run a simple REPL loop for interacting with a Swarm agent.
@@ -80,6 +81,11 @@ def run_demo_loop(
         ...     "organization_id": "your-org-id",
         ...     "http_client": httpx.Client(proxies="list of proxies"),
         ... }
+    possible_msg_keys: list[str], optional
+        List of possible keys for messages. For making compatible with
+        different API.
+        Example:
+        >>> possible_msg_keys = ["role", "content", "tool_calls"]
 
     Returns
     -------
@@ -88,7 +94,10 @@ def run_demo_loop(
     if client_config is None:
         client_config = {}
     client = OpenAI(**client_config)
-    swarm = Swarm(client=client)
+    swarm = Swarm(
+        client=client,
+        possible_msg_keys=possible_msg_keys
+    )
     print("Starting Swarm CLI 🐝")
 
     messages = []

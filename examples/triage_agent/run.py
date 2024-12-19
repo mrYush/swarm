@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 
 from swarm.repl import run_demo_loop
-from agents import triage_agent
+from agents import triage_agent, set_up_agents
 
 if __name__ == "__main__":
     file_path = Path(__file__).resolve()
@@ -13,5 +13,8 @@ if __name__ == "__main__":
     client_config = {
         "base_url": config["base_url"]
     }
-    run_demo_loop(starting_agent=triage_agent, stream=True, debug=False,
-                  client_config=client_config)
+    set_up_agents(model_name=config["model_name"],
+                  tool_choice=config["tool_choice"])
+    run_demo_loop(starting_agent=triage_agent, stream=False, debug=False,
+                  client_config=client_config,
+                  possible_msg_keys=["role", "content"])

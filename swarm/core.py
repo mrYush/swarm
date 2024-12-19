@@ -9,7 +9,8 @@ from openai import OpenAI
 
 
 # Local imports
-from .util import function_to_json, debug_print, merge_chunk
+from .util import function_to_json, debug_print, merge_chunk, \
+    parse_tool_calls_from_content
 from .types import (
     Agent,
     AgentFunction,
@@ -24,10 +25,12 @@ __CTX_VARS_NAME__ = "context_variables"
 
 
 class Swarm:
-    def __init__(self, client: OpenAI = None):
+    def __init__(self, client: OpenAI = None,
+                 possible_msg_keys: List[str] = None):
         if not client:
             client = OpenAI()
         self.client = client
+        self.possible_msg_keys = possible_msg_keys
 
     def get_chat_completion(
         self,
@@ -45,6 +48,11 @@ class Swarm:
             else agent.instructions
         )
         messages = [{"role": "system", "content": instructions}] + history
+        if self.possible_msg_keys:
+            messages = [{
+                key: msg[key] for key in msg.keys()
+                if key in self.possible_msg_keys
+            } for msg in messages]
         debug_print(debug, "Getting chat completion for...:", messages)
 
         tools = [function_to_json(f) for f in agent.functions]
@@ -268,6 +276,13 @@ class Swarm:
             message = completion.choices[0].message
             debug_print(debug, "Received completion:", message)
             message.sender = active_agent.name
+
+            # Парсим вызовы инструментов из message.content
+            message.tool_calls = parse_tool_calls_from_content(
+                content=message.content,
+                debug=debug
+            )
+
             history.append(
                 json.loads(message.model_dump_json())
             )  # to avoid OpenAI types (?)
@@ -278,7 +293,10 @@ class Swarm:
 
             # handle function calls, updating context_variables, and switching agents
             partial_response = self.handle_tool_calls(
-                message.tool_calls, active_agent.functions, context_variables, debug
+                tool_calls=message.tool_calls,
+                functions=active_agent.functions,
+                context_variables=context_variables,
+                debug=debug
             )
             history.extend(partial_response.messages)
             context_variables.update(partial_response.context_variables)
