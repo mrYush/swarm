@@ -2,6 +2,7 @@ import inspect
 import json
 import re
 from datetime import datetime
+from typing import Callable
 
 from .types import Function, ChatCompletionMessageToolCall
 
@@ -126,3 +127,20 @@ def parse_tool_calls_from_content(
                     print(f"Failed to parse tool call JSON: {e}")
 
     return tool_calls
+
+
+def filter_args(args: dict, func: Callable) -> dict:
+    """
+    Filters the arguments dictionary to only include keys that are
+    present in the function's parameter list.
+
+    Args:
+        args: The dictionary of arguments to be filtered.
+        func: The function whose parameter list will be used for filtering.
+
+    Returns:
+        A dictionary containing only the arguments that are present in the
+        function's parameter list.
+    """
+    expected_args = func.__code__.co_varnames[:func.__code__.co_argcount]
+    return {k: v for k, v in args.items() if k in func.arguments}

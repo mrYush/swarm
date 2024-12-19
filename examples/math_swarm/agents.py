@@ -8,43 +8,46 @@ import copy
 
 from swarm import Agent
 
-
-finalizer_agent = Agent(
-    name="Finalizer Agent",
-    instructions=(
-        "Collect all the results from the agents, "
-        "integrate them, and produce the final solution."
-        "It should be only short answer."
-    ),
+FINAL_PROMPT = """
+Collect all the results from the agents, combine them, and generate the final solution. 
+Return the result as JSON with the key 'answer'. 
+For example, for the task "2 + 4 + 19", the expected output is: {"answer": 25}.
+""".strip()
+finalizing_agent = Agent(
+    name="Finalising Agent",
+    instructions=FINAL_PROMPT,
     functions=[],
-    temperature=0.0,
+    temperature=0.2,
 )
 
 
 def finalize():
-    return finalizer_agent
+    return finalizing_agent
 
 
 solver_agent = Agent(
     name="Math Solver Agent",
     instructions=(
-        "Prepare new step-by-step solutions for the math problem and solve it. "
-        "If fewer than 5 solutions are proposed, you must call 'launch_solver_agent'. "
-        "In all cases, after generating solutions, ensure to call 'finalize' to complete the process."
+        "You have to prepare new step-by-step solutions for the math problem and solve it. "
+        "After that, you should use  'launch_solver_agent' tool five times to generate all possible solutions. "
+        "If all possible solutions are generated, use 'finalize' tool to complete the process."
     ),
     functions=[finalize],
-    temperature=0.0
+    temperature=0.2
 )
 
 
 def launch_solver_agent():
+    """
+    If any args or kwargs are passed, they will be propagated to the next agent.
+    """
     return solver_agent
 
 
 def set_up_agents(model_name: str, tool_choice: str = None):
     solver_agent.model = model_name
-    finalizer_agent.model = model_name
+    finalizing_agent.model = model_name
     if tool_choice:
         solver_agent.tool_choice = tool_choice
-        finalizer_agent.tool_choice = tool_choice
+        finalizing_agent.tool_choice = tool_choice
     solver_agent.functions.append(launch_solver_agent)

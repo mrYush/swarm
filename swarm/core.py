@@ -10,7 +10,7 @@ from openai import OpenAI
 
 # Local imports
 from .util import function_to_json, debug_print, merge_chunk, \
-    parse_tool_calls_from_content
+    parse_tool_calls_from_content, filter_args
 from .types import (
     Agent,
     AgentFunction,
@@ -25,12 +25,17 @@ __CTX_VARS_NAME__ = "context_variables"
 
 
 class Swarm:
-    def __init__(self, client: OpenAI = None,
-                 possible_msg_keys: List[str] = None):
+    def __init__(
+        self,
+        client: OpenAI = None,
+        possible_msg_keys: List[str] = None,
+        closing_agent: Agent = None,
+    ):
         if not client:
             client = OpenAI()
         self.client = client
         self.possible_msg_keys = possible_msg_keys
+        self.closing_agent = closing_agent
 
     def get_chat_completion(
         self,
@@ -66,8 +71,8 @@ class Swarm:
         create_params = {
             "model": model_override or agent.model,
             "messages": messages,
-            "tools": tools or None,
-            "tool_choice": agent.tool_choice,
+            # "tools": tools or None,
+            # "tool_choice": agent.tool_choice,
             "stream": stream,
             "temperature": agent.temperature
         }
@@ -128,6 +133,7 @@ class Swarm:
             # pass context_variables to agent functions
             if __CTX_VARS_NAME__ in func.__code__.co_varnames:
                 args[__CTX_VARS_NAME__] = context_variables
+            args = filter_args(args, func)
             raw_result = function_map[name](**args)
 
             result: Result = self.handle_function_result(raw_result, debug)
@@ -303,9 +309,31 @@ class Swarm:
             context_variables.update(partial_response.context_variables)
             if partial_response.agent:
                 active_agent = partial_response.agent
-
+        if self.closing_agent:
+            completion = self.get_chat_completion(
+                agent=self.closing_agent,
+                history=history,
+                context_variables=context_variables,
+                model_override=model_override,
+                stream=stream,
+                debug=debug,
+            )
+            message = completion.choices[0].message
+            debug_print(debug, "Received completion:", message)
+            message.sender = self.closing_agent.name
+            history.append(
+                json.loads(message.model_dump_json())
+            )  # to avoid OpenAI types (?)
         return Response(
             messages=history[init_len:],
-            agent=active_agent,
+            agent=self.closing_agent or active_agent,
             context_variables=context_variables,
         )
+
+    def run_boids(
+        self,
+        agent: Agent,
+        messages: list[dict[str, str]],
+
+    ):
+        pass
