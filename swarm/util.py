@@ -97,11 +97,12 @@ def parse_tool_calls_from_content(
     debug: bool = False
 ) -> list[ChatCompletionMessageToolCall]:
     """
-    Извлекает и парсит вызовы инструментов из строки content, используя теги <tool_call>.
-
-    :param content: Строка с текстом, содержащим теги <tool_call>.
-    :param debug: Флаг для включения режима отладки.
-    :return: Список объектов ChatCompletionMessageToolCall.
+    Extracts tool calls from a string containing <tool_call> tags.
+    Args:
+        content: The content string to be parsed text between <tool_call> tags.
+        debug: Whether to print debug information.
+    Returns:
+        A list of ChatCompletionMessageToolCall objects.
     """
     tool_call_pattern = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
     tool_calls = []
@@ -144,3 +145,32 @@ def filter_args(args: dict, func: Callable) -> dict:
     """
     expected_args = func.__code__.co_varnames[:func.__code__.co_argcount]
     return {k: v for k, v in args.items() if k in func.arguments}
+
+
+def collect_messages_tail(
+    messages: list[dict[str, str]],
+    available_len: int = 512
+) -> list[dict[str, str]]:
+    """
+    Collects the tail of messages that fit into the available length.
+    Args:
+        messages: A list of messages to be processed.
+        available_len: The maximum length of the messages to be collected.
+    Returns:
+        A list of message texts that fit into the available length.
+    """
+    joint_length = 0
+    index = len(messages) - 1
+    for index in range(len(messages) - 1, -1, -1):
+        msg_len = len(json.dumps(messages[index], ensure_ascii=False))
+        # FIXME better count tokens than symbols
+        if joint_length + msg_len > available_len:
+            break
+        joint_length += msg_len + 1
+    messages_slice = messages[index:]
+    if len(messages_slice) == 0:
+        new_content = messages[-1]["content"][-available_len:]
+        messages_slice = [
+            {"role": messages[-1]["role"], "content": new_content}
+        ]
+    return [message for message in messages_slice]

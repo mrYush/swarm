@@ -1,16 +1,19 @@
 # Standard library imports
 import copy
 import json
+import logging
 from collections import defaultdict
-from typing import List, Callable, Union
+from typing import List
 
 # Package/library imports
 from openai import OpenAI
 
+logger = logging.getLogger(__name__)
+
 
 # Local imports
 from .util import function_to_json, debug_print, merge_chunk, \
-    parse_tool_calls_from_content, filter_args
+    parse_tool_calls_from_content, filter_args, collect_messages_tail
 from .types import (
     Agent,
     AgentFunction,
@@ -30,12 +33,14 @@ class Swarm:
         client: OpenAI = None,
         possible_msg_keys: List[str] = None,
         closing_agent: Agent = None,
+        max_symbol_cnt: int = 512
     ):
         if not client:
             client = OpenAI()
         self.client = client
         self.possible_msg_keys = possible_msg_keys
         self.closing_agent = closing_agent
+        self.max_symbol_cnt = max_symbol_cnt
 
     def get_chat_completion(
         self,
@@ -52,7 +57,13 @@ class Swarm:
             if callable(agent.instructions)
             else agent.instructions
         )
-        messages = [{"role": "system", "content": instructions}] + history
+        system_message = {"role": "system", "content": instructions}
+        system_len = len(json.dumps(system_message, ensure_ascii=False))
+        adj_history = collect_messages_tail(
+            messages=history,
+            available_len=self.max_symbol_cnt - system_len
+        )
+        messages = [system_message] + adj_history
         if self.possible_msg_keys:
             messages = [{
                 key: msg[key] for key in msg.keys()
@@ -270,7 +281,7 @@ class Swarm:
         init_len = len(messages)
 
         while len(history) - init_len < max_turns and active_agent:
-
+            logger.debug(f"Turn {len(history) - init_len + 1}")
             # get completion with current history, agent
             completion = self.get_chat_completion(
                 agent=active_agent,
