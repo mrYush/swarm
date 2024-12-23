@@ -37,6 +37,14 @@ solver_agent = Agent(
 )
 
 
+check_agent = Agent(
+    name="Checker",
+    instructions="User sends a json with keys: 'problem', 'answer', 'true_answer'. You shoul return json with key 'correct' and value 'true' or 'false'.",
+    functions=[],
+    temperature=0
+)
+
+
 def launch_solver_agent():
     """
     If any args or kwargs are passed, they will be propagated to the next agent.
@@ -47,6 +55,7 @@ def launch_solver_agent():
 def set_up_agents(model_name: str, tool_choice: str = None):
     solver_agent.model = model_name
     finalizing_agent.model = model_name
+    check_agent.model = model_name
     if tool_choice:
         solver_agent.tool_choice = tool_choice
         finalizing_agent.tool_choice = tool_choice
