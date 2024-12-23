@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import shelve
 from datetime import datetime
 from pathlib import Path
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     print(config_hash)
     for item in tqdm(random_samples):
         item_hash = hashlib.sha256(str(item).encode()).hexdigest()[:8]
-        print(item_hash)
+        # print(item_hash)
         cache_data = get_cache(joint_hash=f"{item_hash}_{config_hash}")
         if cache_data:
             for_exam.append(cache_data)
@@ -60,7 +61,7 @@ if __name__ == "__main__":
             messages=history,
             context_variables={},
             stream=False,
-            debug=False,
+            debug=True,
             max_turns=config["max_turns"],
         )
         data = {"response": response.model_dump(), "item": item}

@@ -3,10 +3,11 @@ import copy
 import json
 import logging
 from collections import defaultdict
+from time import sleep
 from typing import List
 
 # Package/library imports
-from openai import OpenAI
+from openai import OpenAI, APITimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,27 @@ class Swarm:
         self.possible_msg_keys = possible_msg_keys
         self.closing_agent = closing_agent
         self.max_symbol_cnt = max_symbol_cnt
+
+    def retrieve_chat_completion(
+        self,
+        create_params: dict,
+        debug: bool,
+    ) -> ChatCompletionMessage:
+        debug_print(debug, f"create_params: {create_params}")
+        retry_count = 5
+        for num in range(retry_count):
+            try:
+                response = self.client.chat.completions.create(**create_params)
+                break
+            except APITimeoutError as exception:
+                debug_print(debug, f"API Timeout Error: {exception}")
+                sleep(1)
+                continue
+            finally:
+                if num == retry_count - 1:
+                    raise APITimeoutError("API Timeout Error")
+        debug_print(debug, "Received completion:", response.choices[0].message)
+        return response
 
     def get_chat_completion(
         self,
@@ -85,13 +107,16 @@ class Swarm:
             # "tools": tools or None,
             # "tool_choice": agent.tool_choice,
             "stream": stream,
-            "temperature": agent.temperature
+            "temperature": agent.temperature,
+            "timeout": 10
         }
 
         if tools:
             create_params["parallel_tool_calls"] = agent.parallel_tool_calls
-
-        return self.client.chat.completions.create(**create_params)
+        response = self.retrieve_chat_completion(create_params=create_params,
+                                                 debug=debug)
+        debug_print(debug, "Received completion:", response.choices[0].message)
+        return response
 
     def handle_function_result(self, result, debug) -> Result:
         match result:
