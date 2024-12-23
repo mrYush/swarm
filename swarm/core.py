@@ -115,7 +115,6 @@ class Swarm:
             create_params["parallel_tool_calls"] = agent.parallel_tool_calls
         response = self.retrieve_chat_completion(create_params=create_params,
                                                  debug=debug)
-        debug_print(debug, "Received completion:", response.choices[0].message)
         return response
 
     def handle_function_result(self, result, debug) -> Result:
@@ -355,7 +354,7 @@ class Swarm:
                 debug=debug,
             )
             message = completion.choices[0].message
-            debug_print(debug, "Received completion:", message)
+            debug_print(debug, "Received final completion:", message)
             message.sender = self.closing_agent.name
             history.append(
                 json.loads(message.model_dump_json())
