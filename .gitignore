@@ -123,4 +123,4 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
-/examples/math_swarm/cache.db
+*.db

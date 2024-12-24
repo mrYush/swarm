@@ -38,6 +38,7 @@ if __name__ == "__main__":
     set_up_agents(model_name=config["model_name"],
                   tool_choice=config["tool_choice"])
     agent = solver_agent
+    agent.instructions += f"\nCreate solution for {config['max_turns']} turns."
     for_exam = []
     config_hash = hashlib.sha256(str(config).encode()).hexdigest()[:8]
     print(config_hash)

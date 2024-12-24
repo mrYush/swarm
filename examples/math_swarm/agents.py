@@ -28,9 +28,9 @@ def finalize():
 solver_agent = Agent(
     name="Math Solver Agent",
     instructions=(
-        "You have to prepare new step-by-step solutions for the math problem and solve it. "
-        "After that, you should use  'launch_solver_agent' tool five times to generate all possible solutions. "
-        "If all possible solutions are generated, use 'finalize' tool to complete the process."
+        "Make next step to solve the math problem. "
+        "Use 'launch_solver_agent' tool to delegate the next step to another agent. "
+        "If solution is found, use 'finalize' tool to complete the process."
     ),
     functions=[finalize],
     temperature=0.2
