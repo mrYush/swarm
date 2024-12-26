@@ -6,13 +6,14 @@ from pathlib import Path
 
 import yaml
 from datasets import load_dataset
-from openai import OpenAI
+from openai import OpenAI, APITimeoutError
 from tqdm import tqdm
 
 from examples.math_swarm.agents import set_up_agents, solver_agent, \
     finalizing_agent
 from examples.math_swarm.side_utils import IndentDumper
 from swarm import Swarm
+from swarm.util import debug_print
 
 
 def get_cache(joint_hash):
@@ -57,14 +58,18 @@ if __name__ == "__main__":
         )
 
         history = [{"role": "user", "content": item["problem"]}]
-        response = swarm.run(
-            agent=agent,
-            messages=history,
-            context_variables={},
-            stream=False,
-            debug=True,
-            max_turns=config["max_turns"],
-        )
+        try:
+            response = swarm.run(
+                agent=agent,
+                messages=history,
+                context_variables={},
+                stream=False,
+                debug=True,
+                max_turns=config["max_turns"],
+            )
+        except APITimeoutError as exc:
+            debug_print(f"API Timeout error: {exc}")
+            continue
         data = {"response": response.model_dump(), "item": item}
         save_cache(joint_hash=f"{item_hash}_{config_hash}",
                    data=data)

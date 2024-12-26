@@ -56,7 +56,7 @@ class Swarm:
                 break
             except APITimeoutError as exception:
                 debug_print(debug, f"API Timeout Error: {exception}")
-                sleep(1)
+                sleep(1 * (num + 1))
                 continue
             finally:
                 if num == retry_count - 1:
@@ -306,7 +306,6 @@ class Swarm:
 
         while len(history) - init_len < max_turns and active_agent:
             logger.debug(f"Turn {len(history) - init_len + 1}")
-            # get completion with current history, agent
             completion = self.get_chat_completion(
                 agent=active_agent,
                 history=history,
