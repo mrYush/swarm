@@ -63,11 +63,21 @@ def process_file(file_path: Path, agent) -> dict:
         data = yaml.safe_load(iof)
     launch_config = data["config"]
     print(yaml.dump(launch_config, allow_unicode=True, sort_keys=False))
-    file_scores = proceed(results=data["results"], agent=agent)
     dest_file = file_path.with_name(file_path.stem + "_scores.yaml")
-    with open(dest_file, "w") as iof:
-        yaml.dump(file_scores, iof, allow_unicode=True, sort_keys=False,
-                  Dumper=IndentDumper)
+    if dest_file.exists():
+        with open(dest_file) as iof:
+            file_scores = yaml.safe_load(iof)
+    else:
+        while True:
+            try:
+                file_scores = proceed(results=data["results"], agent=agent)
+                break
+            except Exception as ex:
+                LOGGER.error(f"Error processing file {file_path}: {ex}")
+                continue
+        with open(dest_file, "w") as iof:
+            yaml.dump(file_scores, iof, allow_unicode=True, sort_keys=False,
+                      Dumper=IndentDumper)
     score_df = pd.DataFrame(file_scores).T
     # score_df.to_csv(dest_file.with_suffix(".csv"))
     launch_config["accuracy"] = float((score_df["verdict"] == "true").mean())
@@ -88,8 +98,12 @@ if __name__ == "__main__":
     final_results = {}
     for filename in config["file_names"]:
         file_path = folder / filename
-        next_row = process_file(file_path=file_path, agent=agent)
-        final_results[filename] = next_row
+        try:
+            next_row = process_file(file_path=file_path, agent=agent)
+            final_results[filename] = next_row
+        except FileExistsError as ex:
+            LOGGER.error(f"Error processing file {file_path}: {ex}")
+            continue
     fdf = pd.DataFrame(final_results).T
     fdf.to_csv(folder / "final_results.csv")
     LOGGER.info("Done")
